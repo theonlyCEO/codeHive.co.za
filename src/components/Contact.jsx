@@ -113,13 +113,13 @@ const Contact = () => {
                   <Phone size={20} color="var(--color-primary)" />
                   <div>
                     <div style={{ fontSize: '14px', color: 'var(--color-text-tertiary)', marginBottom: '4px' }}>Phone</div>
-                    <a href="tel:+27 81 214 7233" style={{
+                    <a href="tel:+27 (21) 013-0243" style={{
                       fontSize: '17px',
                       color: 'var(--color-text-primary)',
                       textDecoration: 'none',
                       transition: 'color var(--transition-fast)'
                     }}>
-                      +27 81 214 7233
+                      +27 (21) 013-0243
                     </a>
                   </div>
                 </div>
@@ -261,7 +261,7 @@ const Contact = () => {
                       color: 'var(--color-text-primary)',
                       transition: 'all 0.2s ease'
                     }}
-                    placeholder="+27 81 214 7233"
+                    placeholder="+27 (21) 013-0243"
                   />
                 </div>
                 

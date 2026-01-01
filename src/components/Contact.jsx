@@ -8,7 +8,7 @@ const Contact = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
 
   // Get backend URL from environment variables
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://porftfolio-email-backend.vercel.app"
 
   const handleSubmit = async (e) => {
     e.preventDefault()

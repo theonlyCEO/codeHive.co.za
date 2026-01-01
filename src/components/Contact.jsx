@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react'
 import { Send, Mail, Phone, MapPin, Clock, CheckCircle, AlertCircle, Sparkles, X } from 'lucide-react'
-import emailjs from '@emailjs/browser'
 
 const Contact = () => {
   const form = useRef()
@@ -8,52 +7,61 @@ const Contact = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
 
-  const handleSubmit = (e) => {
+  // Get backend URL from environment variables
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL 
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setStatus({ type: 'loading', message: 'Sending message...' })
 
-    // Get current timestamp for the email
-    const currentTime = new Date().toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    })
+    // Collect form data
+    const formData = new FormData(form.current)
+    const formValues = Object.fromEntries(formData.entries())
 
-    emailjs
-      .sendForm(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        form.current,
-        {
-          publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-          time: currentTime,
-          form_submitted_at: new Date().toISOString()
-        }
-      )
-      .then(
-        () => {
-          setIsLoading(false)
-          setShowSuccessPopup(true)
-          form.current.reset()
-          
-          setTimeout(() => {
-            setShowSuccessPopup(false)
-          }, 5000)
+    // Prepare data for backend
+    const emailData = {
+      name: formValues.user_name,
+      email: formValues.user_email,
+      subject: `New Contact Form Submission from ${formValues.user_name}`,
+      company: formValues.company || 'Not specified',
+      phone: formValues.phone || 'Not specified',
+      website: formValues.website || 'Not specified',
+      message: formValues.message
+    }
+
+    try {
+      // Send to your Node.js backend
+      const response = await fetch(`${BACKEND_URL}/api/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        (error) => {
-          console.log('Email sending failed:', error.text)
-          setStatus({ 
-            type: 'error', 
-            message: 'Failed to send message. Please try again or email us directly at codehive356@gmail.com.' 
-          })
-          setIsLoading(false)
-        }
-      )
+        body: JSON.stringify(emailData)
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setIsLoading(false)
+        setShowSuccessPopup(true)
+        form.current.reset()
+        setStatus({ type: '', message: '' })
+        
+        setTimeout(() => {
+          setShowSuccessPopup(false)
+        }, 5000)
+      } else {
+        throw new Error(result.error || 'Failed to send email')
+      }
+    } catch (error) {
+      console.log('Email sending failed:', error)
+      setStatus({ 
+        type: 'error', 
+        message: `Failed to send message. Please try again or email us directly at codehive356@gmail.com. Error: ${error.message}` 
+      })
+      setIsLoading(false)
+    }
   }
 
   const closePopup = () => {
@@ -155,8 +163,6 @@ const Contact = () => {
                 flexDirection: 'column', 
                 gap: '24px'
               }}>
-                <input type="hidden" name="form_submitted_at" value={new Date().toISOString()} />
-                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label htmlFor="name" style={{ fontSize: '15px', fontWeight: '500', color: 'var(--color-text-primary)' }}>Full Name *</label>
                   <input
@@ -219,32 +225,6 @@ const Contact = () => {
                   />
                 </div>
                 
-                {/* <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label htmlFor="budget" style={{ fontSize: '15px', fontWeight: '500', color: 'var(--color-text-primary)' }}>Project Budget *</label>
-                  <select
-                    id="budget"
-                    name="budget"
-                    style={{
-                      padding: '16px',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '12px',
-                      fontSize: '17px',
-                      fontFamily: 'inherit',
-                      backgroundColor: 'white',
-                      color: 'var(--color-text-primary)',
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer'
-                    }}
-                    required
-                  >
-                    <option value="">Select budget range</option>
-                    <option value="under-5k">Under $5,000</option>
-                    <option value="5k-15k">$5,000 - $15,000</option>
-                    <option value="15k-50k">$15,000 - $50,000</option>
-                    <option value="50k-plus">$50,000+</option>
-                  </select>
-                </div> */}
-                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label htmlFor="phone" style={{ fontSize: '15px', fontWeight: '500', color: 'var(--color-text-primary)' }}>Phone Number</label>
                   <input
@@ -268,7 +248,6 @@ const Contact = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label htmlFor="website" style={{ fontSize: '15px', fontWeight: '500', color: 'var(--color-text-primary)' }}>Website/Project URL</label>
                   <input
-                   
                     id="website"
                     name="website"
                     style={{
@@ -326,9 +305,32 @@ const Contact = () => {
                   </div>
                 )}
                 
-                {/* ===========================================
-                    SUBMIT BUTTON - VISIBLE AND STYLED
-                    =========================================== */}
+                {/* Loading Message */}
+                {status.type === 'loading' && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                    color: 'var(--color-primary)',
+                    border: '1px solid rgba(0, 122, 255, 0.2)'
+                  }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      border: '3px solid rgba(0, 122, 255, 0.3)',
+                      borderTopColor: 'var(--color-primary)',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }}></div>
+                    {status.message}
+                  </div>
+                )}
+                
+                {/* Submit Button */}
                 <div style={{ 
                   marginTop: '20px',
                   display: 'block !important',
@@ -402,9 +404,6 @@ const Contact = () => {
                     Click the button above to submit. We'll respond within 24 hours!
                   </p>
                 </div>
-                {/* ===========================================
-                    END OF SUBMIT BUTTON
-                    =========================================== */}
               </form>
             </div>
           </div>
